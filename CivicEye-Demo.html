@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CivicEye AI Civic Governance & Resolution Platform</title>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  darkMode: 'class',
+  theme: {
+    extend: {
+      colors: {
+        brand: { 50: '#f0fdfa', 100: '#ccfbf1', 500: '#14b8a6', 600: '#0d9488', 700: '#0f766e', 800: '#115e59' },
+        accent: { 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca' }
+      }
+    }
+  }
+}
+</script>
+<!-- FontAwesome & Google Fonts -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap');
+body { font-family: 'Plus Jakarta Sans', sans-serif; }
+.font-mono-tech { font-family: 'Fira Code', monospace; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.05); }
+::-webkit-scrollbar-thumb { background: rgba(156, 163, 175, 0.4); border-radius: 3px; }
+.nav-btn-active {
+  color: #22d3ee !important;
+  position: relative;
+}
+.nav-btn-active::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 16px;
+  height: 3px;
+  background-color: #22d3ee;
+  border-radius: 99px;
+  box-shadow: 0 0 8px #22d3ee;
+}
+@keyframes radar-sweep {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.radar-sweeper { animation: radar-sweep 4s linear infinite; transform-origin: center; }
+</style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col transition-colors duration-200">
+
+<!-- Toast Alert Notification -->
+<div id="toastNotification" class="fixed top-20 right-5 z-50 transform translate-x-full transition-transform duration-300 bg-slate-900 border border-slate-800 p-4 rounded-xl shadow-2xl flex items-center space-x-3">
+  <div id="toastIcon" class="inline-flex items-center justify-center flex-shrink-0 w-10 h-10 text-emerald-400 bg-emerald-950/80 rounded-lg">
+    <i class="fa-solid fa-circle-check text-lg"></i>
+  </div>
+  <div class="mr-3">
+    <h4 id="toastTitle" class="text-sm font-bold text-slate-100">Notification</h4>
+    <p id="toastMessage" class="text-xs text-slate-400">Action performed successfully.</p>
+  </div>
+  <button onclick="hideToast()" class="ml-auto text-slate-400 hover:text-white p-1 cursor-pointer">
+    <i class="fa-solid fa-xmark"></i>
+  </button>
+</div>
+
+<!-- Navigation Header -->
+<header class="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 shadow-sm">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+    <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('report')">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-accent-600 flex items-center justify-center text-white">
+        <i class="fa-solid fa-eye text-xl"></i>
+      </div>
+      <div>
+        <span class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-brand-400 via-teal-300 to-indigo-300 bg-clip-text text-transparent">CivicEye</span>
+        <span class="text-[10px] uppercase tracking-widest font-bold px-1.5 py-0.5 rounded ml-1 bg-brand-500/20 text-brand-300 border border-brand-500/30">AI Pro</span>
+      </div>
+    </div>
+    <!-- Nav Links -->
+    <nav class="hidden md:flex items-center space-x-1 lg:space-x-2 text-sm font-medium">
+      <button onclick="switchTab('report')" id="nav-report" class="nav-btn nav-btn-active px-3 py-2 rounded-lg cursor-pointer">
+        <i class="fa-solid fa-camera mr-1.5"></i>Report & Dispatch
+      </button>
+      <button onclick="switchTab('map')" id="nav-map" class="nav-btn px-3 py-2 rounded-lg text-slate-300 hover:text-white cursor-pointer">
+        <i class="fa-solid fa-map-location-dot mr-1.5"></i>Live Heatmap & GIS
+      </button>
+      <button onclick="switchTab('verify')" id="nav-verify" class="nav-btn px-3 py-2 rounded-lg text-slate-300 hover:text-white cursor-pointer">
+        <i class="fa-solid fa-sliders mr-1.5"></i>AI Verification
+      </button>
+      <button onclick="switchTab('credits')" id="nav-credits" class="nav-btn px-3 py-2 rounded-lg text-slate-300 hover:text-white cursor-pointer">
+        <i class="fa-solid fa-coins mr-1.5 text-amber-500"></i>Rewards & FASTag
+      </button>
+      <button onclick="switchTab('admin')" id="nav-admin" class="nav-btn px-3 py-2 rounded-lg text-slate-300 hover:text-white cursor-pointer">
+        <i class="fa-solid fa-chart-pie mr-1.5 text-accent-500"></i>Gov Admin
+      </button>
+    </nav>
+    <div class="flex items-center space-x-3">
+      <div onclick="switchTab('credits')" class="cursor-pointer bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 px-3 py-1.5 rounded-xl flex items-center space-x-2">
+        <i class="fa-solid fa-coins text-amber-500 text-sm"></i>
+        <span id="headerCreditCount" class="text-xs font-bold text-amber-400">350 Credits</span>
+        <span class="text-[10px] font-semibold bg-amber-500 text-white px-2 py-0.5 rounded-full">GOLD</span>
+      </div>
+      <button onclick="openSettingsModal()" class="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 cursor-pointer transition">
+        <i class="fa-solid fa-gear text-lg"></i>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- Main Container -->
+<main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
+  <!-- HERO BANNER -->
+  <div class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border border-slate-800 p-6 sm:p-10 shadow-xl">
+    <div class="relative z-10 max-w-3xl space-y-4">
+      <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-brand-500/20 border border-brand-500/30 text-brand-300 text-xs font-semibold">
+        <span class="w-2 h-2 rounded-full bg-brand-400 animate-ping"></span>
+        <span>Autonomous Playwright Dispatch & GIS Buffer Engine</span>
+      </div>
+      <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight leading-tight">
+        Don't Just Report the Problem. <br/>
+        <span class="bg-gradient-to-r from-brand-400 via-teal-300 to-indigo-300 bg-clip-text text-transparent">Automate the Resolution.</span>
+      </h1>
+      <p class="text-slate-300 text-sm sm:text-base leading-relaxed">
+        Upload evidence photo. Our EXIF Vision extracts GPS coordinates, deduplicates active tickets using GIS 50m radius radar, and executes Playwright DOM automation.
+      </p>
+      <div class="pt-2 flex flex-wrap gap-3">
+        <button onclick="triggerFileSelect()" class="bg-brand-500 hover:bg-brand-600 text-white font-semibold px-4 py-2.5 rounded-xl text-xs sm:text-sm flex items-center space-x-2 cursor-pointer transition shadow-lg shadow-brand-500/20">
+          <i class="fa-solid fa-camera"></i>
+          <span>Upload Issue Photo</span>
+        </button>
+        <button onclick="startVoiceRecording()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold px-4 py-2.5 rounded-xl text-xs sm:text-sm flex items-center space-x-2 cursor-pointer transition">
+          <i class="fa-solid fa-microphone text-emerald-400"></i>
+          <span>Voice Complaint (Speech-to-Text)</span>
+        </button>
+        <button onclick="switchTab('map')" class="bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-semibold px-4 py-2.5 rounded-xl text-xs sm:text-sm flex items-center space-x-2 cursor-pointer transition border border-slate-700">
+          <i class="fa-solid fa-map-pin mr-1.5"></i>Explore Heatmap
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 1: REPORT ISSUE & DISPATCH -->
+  <section id="tab-report" class="tab-content space-y-6">
+    <div class="flex items-center justify-between">
+      <div>
+        <h2 class="text-2xl font-bold flex items-center space-x-2">
+          <i class="fa-solid fa-wand-magic-sparkles text-brand-500"></i>
+          <span>AI Perception & Playwright Form Automation Workflow</span>
+        </h2>
+        <p class="text-xs sm:text-sm text-slate-400">Upload an issue image or pick a sample preset to trigger intelligent routing.</p>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <!-- Left Input Card -->
+      <div class="lg:col-span-5 space-y-6">
+        <div class="bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-800 space-y-4">
+          <h3 class="font-semibold text-sm text-slate-300 flex items-center justify-between">
+            <span>1. Evidence Ingestion & Metadata Tagging</span>
+            <span class="text-[11px] text-brand-400 font-semibold">EXIF + YOLOv8</span>
+          </h3>
+          <!-- Presets Selector -->
+          <div class="grid grid-cols-3 gap-2">
+            <button onclick="loadSampleImage('pothole')" id="preset-pothole" class="preset-btn p-2 border border-slate-700 rounded-xl bg-slate-950/40 text-left hover:border-brand-500 cursor-pointer transition">
+              <span class="block text-xs font-bold text-slate-200">Pothole</span>
+              <span class="text-[10px] text-slate-500">PWD Delhi</span>
+            </button>
+            <button onclick="loadSampleImage('garbage')" id="preset-garbage" class="preset-btn p-2 border border-slate-700 rounded-xl bg-slate-950/40 text-left hover:border-brand-500 cursor-pointer transition">
+              <span class="block text-xs font-bold text-slate-200">Garbage</span>
+              <span class="text-[10px] text-slate-500">MCD Sanitation</span>
+            </button>
+            <button onclick="loadSampleImage('streetlight')" id="preset-streetlight" class="preset-btn p-2 border border-slate-700 rounded-xl bg-slate-950/40 text-left hover:border-brand-500 cursor-pointer transition">
+              <span class="block text-xs font-bold text-slate-200">Streetlight</span>
+              <span class="text-[10px] text-slate-500">DISCOM Grid</span>
+            </button>
+          </div>
+          <!-- Dropzone Image Preview -->
+          <div class="relative border-2 border-dashed border-slate-700 rounded-2xl p-3 text-center hover:border-brand-500 cursor-pointer transition overflow-hidden">
+            <input type="file" id="customFileInput" accept="image/*" onchange="handleCustomFileUpload(event)" class="absolute inset-0 opacity-0 cursor-pointer z-10">
+            <div id="imagePreviewContainer" class="relative rounded-xl overflow-hidden max-h-56">
+              <img id="uploadedImgPreview" src="https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=800&q=80" class="w-full h-full object-cover rounded-xl" alt="Preview">
+              <div id="aiBoundingBox" class="absolute inset-x-8 inset-y-10 border-2 border-dashed border-emerald-400 bg-emerald-500/10 rounded-lg pointer-events-none flex items-start p-2">
+                <span class="bg-emerald-950/90 border border-emerald-400 text-emerald-300 px-1.5 py-0.5 rounded text-[10px] font-mono-tech">POTHOLE 92% (1.2m)</span>
+              </div>
+              <div class="absolute top-2 right-2 bg-slate-900/90 text-white text-[10px] px-2.5 py-1 rounded-md border border-slate-700 font-mono-tech">
+                <i class="fa-solid fa-location-crosshairs text-emerald-400 mr-1"></i>EXIF GPS Tagged
+              </div>
+            </div>
+          </div>
+          <!-- GPS Location & Hash Lock -->
+          <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
+            <div class="flex items-center justify-between text-xs">
+              <span class="font-semibold text-slate-300"><i class="fa-solid fa-location-dot text-rose-400 mr-1"></i>Geofence Coordinate</span>
+              <button onclick="recalculateLocation()" class="text-brand-400 hover:underline text-[11px] cursor-pointer flex items-center gap-1 font-semibold">
+                <i class="fa-solid fa-rotate-right"></i> Refresh GPS (HTML5)
+              </button>
+            </div>
+            <input type="text" id="locationAddressInput" value="Sector 14, Ring Road Junction, New Delhi (28.6139° N, 77.2090° E)" class="w-full text-xs p-2.5 bg-slate-900 border border-slate-800 rounded-lg text-slate-200 font-mono-tech focus:outline-none focus:border-brand-500">
+            <div class="flex justify-between text-[10px] font-mono-tech text-slate-500 pt-1 border-t border-slate-900">
+              <span>Cryptographic Ledger Lock:</span>
+              <span class="text-slate-400 font-bold">SHA-256: 8f9b2c4e...</span>
+            </div>
+          </div>
+          <!-- Trigger Processing Button -->
+          <button onclick="runAIDetectionPipeline()" id="runAiBtn" class="w-full bg-gradient-to-r from-brand-600 to-accent-600 hover:from-brand-500 hover:to-accent-500 text-white font-bold py-3 rounded-xl text-xs sm:text-sm flex items-center justify-center space-x-2 cursor-pointer transition shadow-lg">
+            <i class="fa-solid fa-microchip text-base"></i>
+            <span>Run AI Perception & GIS Radar Check</span>
+          </button>
+        </div>
+        <!-- GIS Radar Card -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm flex flex-col gap-2">
+          <div class="flex items-center justify-between">
+            <h3 class="font-semibold text-xs text-slate-200 flex items-center gap-2">
+              <i class="fa-solid fa-radar text-indigo-400"></i> GIS Spatial Buffer Radar (50m Radius)
+            </h3>
+            <span id="radarStatus" class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded font-mono-tech">Standby</span>
+          </div>
+          <div id="radarResult" class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800 text-xs text-slate-400">
+            Awaiting coordinate extraction...
+          </div>
+        </div>
+      </div>
+
+      <!-- Right AI Console Output & Playwright Automation -->
+      <div class="lg:col-span-7 space-y-6">
+        <div class="bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-800 space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <h3 class="font-bold text-sm flex items-center space-x-2">
+              <i class="fa-solid fa-brain text-accent-500"></i>
+              <span>Multi-Tier Department Jurisdiction Routing Payload</span>
+            </h3>
+            <span id="aiConfidenceBadge" class="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/30 font-mono-tech">Confidence: 96.4%</span>
+          </div>
+          <!-- Dynamic Metrics -->
+          <div class="grid grid-cols-3 gap-3">
+            <div class="p-3 bg-slate-800/60 rounded-xl border border-slate-800">
+              <span class="text-[10px] uppercase text-slate-400 font-bold block">Detected Issue</span>
+              <span id="detectedIssueName" class="text-sm font-extrabold text-slate-100">Deep Road Pothole</span>
+            </div>
+            <div class="p-3 bg-slate-800/60 rounded-xl border border-slate-800">
+              <span class="text-[10px] uppercase text-slate-400 font-bold block">Severity Level</span>
+              <span id="detectedSeverity" class="text-xs font-bold px-2 py-0.5 rounded bg-rose-950 text-rose-300 border border-rose-500/30 inline-block mt-0.5">CRITICAL (92)</span>
+            </div>
+            <div class="p-3 bg-slate-800/60 rounded-xl border border-slate-800">
+              <span class="text-[10px] uppercase text-slate-400 font-bold block">Target Portal</span>
+              <span id="detectedDepartment" class="text-xs font-bold text-teal-400 block mt-0.5">PWD Delhi Wing</span>
+            </div>
+          </div>
+          <!-- Multi-lingual Complaint Output -->
+          <div class="space-y-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">Auto-Generated English Complaint Narrative</label>
+              <textarea id="englishComplaintText" rows="2" class="w-full text-xs p-2.5 bg-slate-800/80 border border-slate-700 rounded-xl text-slate-200 font-sans focus:outline-none focus:border-brand-500">A severe road pothole measuring approx 1.2 meters wide was detected near Sector 14 Ring Road Junction posing serious accident risk.</textarea>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">Generated Hindi Form Payload</label>
+              <textarea id="hindiComplaintText" rows="2" class="w-full text-xs p-2.5 bg-slate-800/80 border border-slate-700 rounded-xl text-slate-200 font-sans focus:outline-none focus:border-brand-500">सेक्टर 14 रिंग रोड के पास सड़क पर एक गहरा गड्ढा पाया गया है। दुर्घटनाओं का खतरा बढ़ रहा है। लोक निर्माण विभाग तुरंत मरम्मत करे।</textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Playwright Terminal Logs -->
+        <div class="bg-slate-900 text-slate-100 rounded-2xl p-5 shadow-lg border border-slate-800 space-y-4">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <span id="termStatusDot" class="w-2.5 h-2.5 rounded-full bg-slate-600"></span>
+              <h3 class="font-bold text-xs uppercase tracking-wider text-slate-300">Playwright Web Automation Terminal</h3>
+            </div>
+            <span class="text-[10px] font-mono-tech text-teal-400">Headless Chromium v124.0</span>
+          </div>
+          <div id="automationConsole" class="bg-slate-950 p-4 rounded-xl border border-slate-800 font-mono-tech text-xs text-slate-300 space-y-1.5 min-h-[140px] max-h-[180px] overflow-y-auto">
+            <p class="text-slate-600">[System] Playwright headless agent initialized. Awaiting user dispatch...</p>
+          </div>
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between pt-2 border-t border-slate-800 gap-3">
+            <div class="text-xs">
+              <span class="text-amber-400 font-bold"><i class="fa-solid fa-coins mr-1"></i>+15 Civic Credits</span>
+              <span class="text-slate-400 block text-[11px]">Redeemable for NETC FASTag Toll Balance</span>
+            </div>
+            <button onclick="triggerPlaywrightAutomation()" id="submitFinalBtn" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-5 py-2.5 rounded-xl text-xs sm:text-sm flex items-center justify-center space-x-2 cursor-pointer transition shadow-lg">
+              <i class="fa-solid fa-robot"></i>
+              <span>Dispatch Playwright Bot & Submit</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 2: ADVANCED HEATMAP & GIS RADAR -->
+  <section id="tab-map" class="tab-content hidden space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div>
+        <h2 class="text-2xl font-bold flex items-center space-x-2">
+          <i class="fa-solid fa-map-location-dot text-brand-500"></i>
+          <span>Live Civic Issue Heatmap & Spatial Clustering</span>
+        </h2>
+        <p class="text-xs sm:text-sm text-slate-400">Real-time geo-mapped hazard tracking with automated duplication clustering.</p>
+      </div>
+      <div class="flex items-center space-x-2">
+        <select id="mapFilterType" onchange="filterMapMarkers()" class="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none">
+          <option value="ALL">All Hazard Categories</option>
+          <option value="Pothole">Potholes & Road Damage</option>
+          <option value="Garbage">Garbage & Sanitation</option>
+          <option value="Electrical">Streetlights & Grid</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- GIS Radar Visualizer Banner -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col md:flex-row gap-6 items-center">
+      <div class="relative w-48 h-48 rounded-full border border-teal-500/30 bg-slate-950 flex items-center justify-center overflow-hidden flex-shrink-0">
+        <div class="absolute inset-0 rounded-full border border-teal-500/10 scale-75"></div>
+        <div class="absolute inset-0 rounded-full border border-teal-500/10 scale-50"></div>
+        <div class="absolute w-full h-[1px] bg-teal-500/20"></div>
+        <div class="absolute h-full w-[1px] bg-teal-500/20"></div>
+        <div class="absolute inset-0 radar-sweeper bg-gradient-to-tr from-transparent via-transparent to-teal-500/20"></div>
+        <div class="w-3 h-3 rounded-full bg-amber-400 animate-ping absolute" style="top: 35%; left: 60%;"></div>
+        <div class="w-2 h-2 rounded-full bg-amber-400 absolute" style="top: 35%; left: 60%;"></div>
+      </div>
+      <div class="space-y-2 flex-1">
+        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-shield-halved text-teal-400"></i> GIS Spatial Deduplication Buffer Engine
+        </h3>
+        <p class="text-xs text-slate-400 leading-relaxed">
+          Preventing duplicate submissions is critical for government efficiency. CivicEye runs a 50-meter Haversine spatial buffer to automatically group identical hazard reports into master tickets.
+        </p>
+        <div class="grid grid-cols-3 gap-3 font-mono-tech text-xs pt-1">
+          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+            <span class="text-slate-500 block text-[9px]">RADIUS</span>
+            <span class="text-white font-bold">50 Meters</span>
+          </div>
+          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+            <span class="text-slate-500 block text-[9px]">ACTIVE BLIPS</span>
+            <span class="text-amber-400 font-bold">1 Detected</span>
+          </div>
+          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+            <span class="text-slate-500 block text-[9px]">MERGE RATE</span>
+            <span class="text-teal-400 font-bold">98.4%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Map Cards Grid -->
+    <div class="bg-slate-900 rounded-2xl p-4 sm:p-6 border border-slate-800 relative overflow-hidden flex flex-col gap-4">
+      <div class="flex items-center justify-between bg-slate-950/90 backdrop-blur-md p-3.5 rounded-xl border border-slate-800">
+        <div class="flex items-center space-x-4 font-mono-tech text-xs">
+          <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 mr-1.5 animate-pulse"></span>Critical Severity</span>
+          <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-amber-500 mr-1.5"></span>In Progress</span>
+          <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 mr-1.5"></span>Resolved & Verified</span>
+        </div>
+        <span class="text-[11px] text-teal-400 font-mono-tech"><i class="fa-solid fa-layer-group mr-1"></i>Delhi NCR Geofence</span>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="mapMarkersGrid">
+        <div onclick="selectMapMarker('88')" class="marker-card p-4 rounded-xl bg-slate-800/90 border border-slate-700 hover:border-brand-500 cursor-pointer space-y-3 transition">
+          <div class="flex justify-between items-start">
+            <span class="text-xs font-extrabold text-rose-400 flex items-center"><i class="fa-solid fa-triangle-exclamation mr-1.5"></i>Road Pothole</span>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-950 text-rose-300 border border-rose-500/30 font-mono-tech">CRITICAL</span>
+          </div>
+          <div>
+            <p class="text-xs text-slate-200 font-bold">Ring Road Junction, Sector 14, Delhi</p>
+            <p class="text-[11px] font-mono-tech text-teal-400">GPS: 28.6139° N, 77.2090° E</p>
+          </div>
+          <div class="p-2.5 bg-indigo-950/80 border border-indigo-500/40 rounded-lg text-[11px] flex items-center justify-between">
+            <span><i class="fa-solid fa-people-group mr-1 text-indigo-400"></i><strong>18 Citizen Reports Merged</strong></span>
+            <span class="font-mono-tech text-[10px] bg-indigo-900 px-1.5 py-0.5 rounded text-indigo-200">#CE-2026-88</span>
+          </div>
+        </div>
+
+        <div onclick="selectMapMarker('89')" class="marker-card p-4 rounded-xl bg-slate-800/90 border border-slate-700 hover:border-brand-500 cursor-pointer space-y-3 transition">
+          <div class="flex justify-between items-start">
+            <span class="text-xs font-extrabold text-amber-400 flex items-center"><i class="fa-solid fa-trash mr-1.5"></i>Garbage Heap</span>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-500/30 font-mono-tech">MODERATE</span>
+          </div>
+          <div>
+            <p class="text-xs text-slate-200 font-bold">Block B Market, Green Park, New Delhi</p>
+            <p class="text-[11px] font-mono-tech text-teal-400">GPS: 28.5588° N, 77.2028° E</p>
+          </div>
+          <div class="p-2.5 bg-slate-950 border border-slate-700 rounded-lg text-[11px] flex items-center justify-between">
+            <span><i class="fa-solid fa-truck-ramp-box mr-1 text-amber-400"></i>Sanitation Unit #4 Dispatched</span>
+            <span class="font-mono-tech text-[10px]">ETA: 3.5 Hrs</span>
+          </div>
+        </div>
+
+        <div onclick="selectMapMarker('90')" class="marker-card p-4 rounded-xl bg-slate-800/90 border border-slate-700 hover:border-brand-500 cursor-pointer space-y-3 transition">
+          <div class="flex justify-between items-start">
+            <span class="text-xs font-extrabold text-emerald-400 flex items-center"><i class="fa-solid fa-lightbulb mr-1.5"></i>Streetlight Outage</span>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/30 font-mono-tech">RESOLVED</span>
+          </div>
+          <div>
+            <p class="text-xs text-slate-200 font-bold">Connaught Place Outer Circle, Gate 2</p>
+            <p class="text-[11px] font-mono-tech text-teal-400">GPS: 28.6315° N, 77.2167° E</p>
+          </div>
+          <div class="p-2.5 bg-emerald-950/60 border border-emerald-500/30 rounded-lg text-[11px] flex items-center justify-between">
+            <span><i class="fa-solid fa-circle-check mr-1"></i>AI Computer Vision Verified</span>
+            <span class="font-mono-tech text-[10px] font-bold">+10 Credits Distributed</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="markerDetailFooter" class="bg-slate-950/90 border border-slate-800 rounded-xl p-3 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <span id="selectedTicketText" class="text-slate-300 font-sans text-xs">Click any map card above to view spatial coordination and cluster details.</span>
+        <button onclick="upvoteSelectedIssue()" class="bg-brand-600 hover:bg-brand-700 text-white font-bold px-4 py-2 rounded-lg text-xs cursor-pointer transition flex items-center gap-1.5 flex-shrink-0">
+          <i class="fa-solid fa-thumbs-up"></i>Upvote & Confirm Hazard (+2 Credits)
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 3: AI VERIFICATION -->
+  <section id="tab-verify" class="tab-content hidden space-y-6">
+    <div>
+      <h2 class="text-2xl font-bold flex items-center space-x-2">
+        <i class="fa-solid fa-sliders text-brand-500"></i>
+        <span>AI Computer Vision Repair Verification Engine</span>
+      </h2>
+      <p class="text-xs sm:text-sm text-slate-400">Multi-modal neural network compares pre-repair citizen evidence with post-repair asphalt resurfacing.</p>
+    </div>
+    <div class="bg-slate-900 rounded-2xl p-6 shadow-sm border border-slate-800 space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="space-y-2">
+          <div class="flex justify-between items-center text-xs font-bold">
+            <span class="text-rose-400 uppercase tracking-wider"><i class="fa-solid fa-camera mr-1"></i>Before Repair (Citizen Evidence)</span>
+            <span class="text-slate-400 font-mono-tech">Ticket #CE-2026-88</span>
+          </div>
+          <div class="relative rounded-xl overflow-hidden border-2 border-rose-500/50 max-h-64">
+            <img src="https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=800&q=80" class="w-full h-full object-cover" alt="Before">
+          </div>
+        </div>
+        <div class="space-y-2">
+          <div class="flex justify-between items-center text-xs font-bold">
+            <span class="text-emerald-400 uppercase tracking-wider"><i class="fa-solid fa-circle-check mr-1"></i>After Repair (Officer Upload)</span>
+            <span class="text-slate-400 font-mono-tech">SLA: 2.8 Days</span>
+          </div>
+          <div class="relative rounded-xl overflow-hidden border-2 border-emerald-500/50 max-h-64">
+            <img src="https://images.unsplash.com/photo-1541888946425-d0fbb186a5b7?auto=format&fit=crop&w=800&q=80" class="w-full h-full object-cover" alt="After Repair">
+          </div>
+        </div>
+      </div>
+      <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+          <div>
+            <h4 class="font-bold text-sm text-slate-100">AI Visual Match Breakdown</h4>
+            <p class="text-xs text-slate-400">SIFT Feature Keypoints & Edge Density Comparison Engine</p>
+          </div>
+          <div class="flex items-center space-x-2">
+            <span class="text-3xl font-extrabold text-emerald-400">96.4%</span>
+            <span class="text-xs font-bold px-2.5 py-1 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/30">MATCH PASS</span>
+          </div>
+        </div>
+        <div class="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <p class="text-xs text-slate-300">Confirm repair as a local citizen to earn <strong>+5 Verification Credits</strong>.</p>
+          <div class="flex space-x-2">
+            <button onclick="confirmResolutionAction(true)" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-xs cursor-pointer transition flex items-center gap-1.5">
+              <i class="fa-solid fa-circle-check"></i>
+              <span>Confirm Repair (+5 Credits)</span>
+            </button>
+            <button onclick="confirmResolutionAction(false)" class="bg-rose-950/60 text-rose-300 border border-rose-500/30 hover:bg-rose-900/60 font-bold px-4 py-2 rounded-xl text-xs cursor-pointer transition">
+              Dispute Resolution
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 4: REWARDS & FASTAG -->
+  <section id="tab-credits" class="tab-content hidden space-y-6">
+    <div>
+      <h2 class="text-2xl font-bold flex items-center space-x-2">
+        <i class="fa-solid fa-coins text-amber-500"></i>
+        <span>Civic Credits & FASTag Rewards Portal</span>
+      </h2>
+      <p class="text-xs sm:text-sm text-slate-400">Earn utility points for civic duty and convert them into toll tax cashback.</p>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="bg-gradient-to-br from-amber-500 to-orange-600 text-white p-6 rounded-2xl shadow-xl space-y-3">
+        <span class="text-xs uppercase font-bold tracking-wider text-amber-100">Your Civic Balance</span>
+        <h3 id="userBalanceDisplay" class="text-4xl font-extrabold">350 Credits</h3>
+        <p class="text-xs text-amber-100">Conversion Value: <strong class="text-white text-sm" id="fastagValueDisplay">₹3.50 FASTag Balance</strong></p>
+        <div class="pt-2">
+          <span class="bg-white/20 px-3 py-1 rounded-full text-xs font-semibold backdrop-blur inline-flex items-center">
+            <i class="fa-solid fa-trophy text-yellow-300 mr-1.5"></i>Gold Contributor Tier
+          </span>
+        </div>
+      </div>
+      <div class="bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-800 space-y-3">
+        <div class="flex justify-between items-center">
+          <span class="text-xs text-slate-400 font-bold uppercase">Linked FASTag Wallet</span>
+          <span class="text-[10px] bg-emerald-950 text-emerald-300 px-2 py-0.5 rounded font-bold border border-emerald-500/30">ACTIVE</span>
+        </div>
+        <h4 class="text-sm font-bold text-slate-100">NHAI / ICICI FASTag</h4>
+        <p class="text-xs font-mono-tech text-slate-400">Tag ID: <span class="text-amber-400 font-bold">3412-8821-9904</span></p>
+        <div class="pt-2">
+          <button onclick="openFastagRedeemModal()" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-2.5 rounded-xl text-xs cursor-pointer transition flex items-center justify-center gap-1.5 shadow-lg">
+            <i class="fa-solid fa-bolt"></i>
+            <span>Redeem Credits to Linked FASTag</span>
+          </button>
+        </div>
+      </div>
+      <div class="bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-800 space-y-3">
+        <span class="text-xs text-slate-400 font-bold uppercase">Earning Matrix</span>
+        <ul class="text-xs space-y-2 text-slate-300">
+          <li class="flex justify-between"><span>New Unique Hazard Report</span><strong class="text-emerald-400">+15 Credits</strong></li>
+          <li class="flex justify-between"><span>Critical Severity AI Bonus</span><strong class="text-emerald-400">+10 Credits</strong></li>
+          <li class="flex justify-between"><span>Repair Resolution Verify</span><strong class="text-emerald-400">+5 Credits</strong></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 5: GOV ADMIN -->
+  <section id="tab-admin" class="tab-content hidden space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div>
+        <h2 class="text-2xl font-bold flex items-center space-x-2">
+          <i class="fa-solid fa-chart-pie text-accent-500"></i>
+          <span>Municipal Government Analytics Dashboard</span>
+        </h2>
+        <p class="text-xs sm:text-sm text-slate-400">Real-time governance oversight, SLA escalations, and audit logs.</p>
+      </div>
+      <button onclick="showToast('Export Report', 'Generating SLA PDF document...')" class="bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold px-4 py-2.5 rounded-xl cursor-pointer transition border border-slate-700 flex items-center gap-2">
+        <i class="fa-solid fa-download"></i>Export SLA Report PDF
+      </button>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800">
+        <span class="text-xs text-slate-400 font-bold uppercase">Total Tickets Logged</span>
+        <h3 class="text-3xl font-extrabold text-slate-100 mt-1">1,240</h3>
+      </div>
+      <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800">
+        <span class="text-xs text-slate-400 font-bold uppercase">Avg Resolution SLA</span>
+        <h3 class="text-3xl font-extrabold text-brand-400 mt-1">3.2 Days</h3>
+      </div>
+      <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800">
+        <span class="text-xs text-slate-400 font-bold uppercase">Duplicate Merge Ratio</span>
+        <h3 class="text-3xl font-extrabold text-accent-500 mt-1">68.4%</h3>
+      </div>
+      <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800">
+        <span class="text-xs text-slate-400 font-bold uppercase">Overdue SLA Alerts</span>
+        <h3 class="text-3xl font-extrabold text-rose-400 mt-1">12</h3>
+      </div>
+    </div>
+    <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 flex flex-col">
+      <h3 class="font-bold text-sm mb-4">Department-wise Complaint Volumes</h3>
+      <div class="relative flex-1 min-h-[260px]">
+        <canvas id="govDepartmentChart"></canvas>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- SETTINGS & CITIZEN PROFILE MODAL ("YOU") -->
+<div id="settingsModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+  <div class="bg-slate-900 max-w-lg w-full rounded-2xl p-6 border border-slate-800 shadow-2xl space-y-4">
+    <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+      <h3 class="font-bold text-sm text-slate-100 flex items-center gap-2">
+        <i class="fa-solid fa-user-shield text-brand-400"></i> Citizen Profile & Enterprise Settings
+      </h3>
+      <button onclick="closeSettingsModal()" class="text-slate-400 hover:text-white cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="space-y-3 text-xs text-slate-300">
+      <!-- Profile Card -->
+      <div class="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-3">
+        <div class="flex justify-between items-start">
+          <div>
+            <p class="font-bold text-sm text-slate-100">Aarav Sharma</p>
+            <p class="text-[11px] text-slate-400">+91 98765-XXXXX</p>
+          </div>
+          <span class="text-amber-400 text-[10px] font-bold px-2 py-0.5 rounded bg-amber-950/60 border border-amber-500/30 font-mono-tech">GOLD TIER</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2 font-mono-tech text-[11px] pt-2 border-t border-slate-900">
+          <div class="col-span-2">
+            <span class="text-slate-500 block text-[10px]">REGISTERED ADDRESS</span>
+            <span class="text-slate-300">Plot 42, Pocket B, Sector 14, Dwarka, New Delhi 110075</span>
+          </div>
+          <div>
+            <span class="text-slate-500 block text-[10px]">VERIFIED CITIZEN ID</span>
+            <span class="text-slate-400 font-bold">[Citizen Credential Verified]</span>
+          </div>
+          <div>
+            <span class="text-slate-500 block text-[10px]">VEHICLE REGISTRATION</span>
+            <span class="text-teal-400 font-bold">DL-01-AB-1234</span>
+          </div>
+          <div class="col-span-2">
+            <span class="text-slate-500 block text-[10px]">LINKED FASTAG WALLET ID</span>
+            <span class="text-amber-400 font-bold">3412-8821-9904 (ICICI NETC Portal)</span>
+          </div>
+        </div>
+      </div>
+      <!-- Toggles -->
+      <div class="p-3 bg-slate-950/60 rounded-xl border border-slate-800/80 space-y-2 text-xs">
+        <div class="flex justify-between items-center">
+          <span>Auto-Fill Playwright Scripts</span>
+          <input type="checkbox" checked class="accent-brand-500">
+        </div>
+        <div class="flex justify-between items-center">
+          <span>HTML5 Geolocation High Precision</span>
+          <input type="checkbox" checked class="accent-brand-500">
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- VOICE COMPLAINT MODAL WITH REAL STT -->
+<div id="voiceModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+  <div class="bg-slate-900 max-w-md w-full rounded-2xl p-6 border border-slate-800 shadow-2xl text-center space-y-4">
+    <div id="micPulseIcon" class="w-16 h-16 rounded-full bg-emerald-950 text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/30 animate-pulse">
+      <i class="fa-solid fa-microphone text-2xl"></i>
+    </div>
+    <h3 id="voiceModalTitle" class="font-bold text-lg text-slate-100">Listening to Voice Complaint...</h3>
+    <p id="voiceModalStatus" class="text-xs text-slate-400">Speak now (e.g. "Sector 14 main road par bada pothole hai")</p>
+    <div id="speechLiveTranscript" class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs font-mono-tech text-emerald-300 min-h-[60px] flex items-center justify-center text-center">
+      Listening...
+    </div>
+    <button onclick="stopVoiceRecording()" class="w-full bg-emerald-500 text-slate-950 font-extrabold py-2.5 rounded-xl text-xs cursor-pointer transition hover:bg-emerald-400">
+      Stop & Convert to Complaint
+    </button>
+  </div>
+</div>
+
+<!-- FASTAG MODAL -->
+<div id="fastagModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+  <div class="bg-slate-900 max-w-lg w-full rounded-2xl p-6 border border-slate-800 shadow-2xl space-y-4">
+    <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+      <h3 class="font-bold text-sm text-slate-100">NPCI NETC FASTag Direct Recharge Gateway</h3>
+      <button onclick="closeFastagRedeemModal()" class="text-slate-400 hover:text-white cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div id="fastagStep1" class="space-y-4 text-xs">
+      <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2 font-mono-tech">
+        <div class="flex justify-between"><span class="text-slate-400">Vehicle Tag:</span><span class="text-emerald-400 font-bold">DL-01-AB-1234</span></div>
+        <div class="flex justify-between"><span class="text-slate-400">Issuer:</span><span class="text-slate-200">ICICI NETC ID: 3412-8821</span></div>
+      </div>
+      <div>
+        <label class="block font-semibold mb-1 text-slate-300">Select Civic Credits to Convert</label>
+        <select id="redeemCreditSelect" class="w-full p-2.5 bg-slate-800 border border-slate-700 rounded-xl text-xs text-slate-200">
+          <option value="350" selected>350 Credits (ALL) → ₹3.50 NETC Toll Balance</option>
+        </select>
+      </div>
+      <button onclick="startFastagProcessing()" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold py-3 rounded-xl cursor-pointer transition shadow-lg">
+        Initiate Instant Toll Wallet Recharge
+      </button>
+    </div>
+    <div id="fastagStep2" class="hidden space-y-3 font-mono-tech text-xs">
+      <div class="flex items-center space-x-2 text-amber-400">
+        <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+        <span>Connecting to NPCI NETC Clearing House Server...</span>
+      </div>
+      <div id="netcGatewayLog" class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-slate-300 space-y-1">
+        <p class="text-slate-500">[00:01.05] POST /api/v2/netc/settlement HTTP/1.1</p>
+      </div>
+    </div>
+    <div id="fastagStep3" class="hidden text-center space-y-3 py-2">
+      <div class="w-12 h-12 rounded-full bg-emerald-950 text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/30">
+        <i class="fa-solid fa-check text-xl"></i>
+      </div>
+      <h4 class="font-extrabold text-base text-slate-100">FASTag Wallet Recharged Successfully!</h4>
+      <button onclick="closeFastagRedeemModal()" class="w-full bg-slate-800 text-slate-200 font-bold py-2.5 rounded-xl cursor-pointer transition hover:bg-slate-700 text-xs">
+        Close & Return to Dashboard
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- AI CHATBOT ASSISTANT -->
+<div id="chatBotContainer" class="fixed bottom-5 right-5 z-40">
+  <button onclick="toggleChatBot()" class="w-14 h-14 rounded-full bg-gradient-to-tr from-brand-500 to-accent-600 text-white flex items-center justify-center shadow-2xl cursor-pointer hover:scale-105 transition">
+    <i class="fa-solid fa-robot text-2xl"></i>
+  </button>
+  <div id="chatBotWindow" class="hidden absolute bottom-16 right-0 w-80 sm:w-96 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl flex flex-col h-96 overflow-hidden">
+    <div class="bg-slate-950 p-3.5 border-b border-slate-800 flex justify-between items-center">
+      <h4 class="font-bold text-xs text-slate-100 flex items-center gap-2">
+        <i class="fa-solid fa-brain text-teal-400"></i> CivicEye Dynamic AI Assistant
+      </h4>
+      <button onclick="toggleChatBot()" class="text-slate-400 hover:text-white cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div id="chatMessages" class="flex-1 p-3 overflow-y-auto space-y-3 text-xs">
+      <div class="bg-slate-800 p-2.5 rounded-xl text-slate-200 max-w-[85%]">Namaste! Main CivicEye AI Assistant hoon. Aap mujhse credits rules, FASTag redemption, GIS radar ya Playwright automation ke baare mein kuch bhi pooch sakte hain.</div>
+    </div>
+    <div class="p-2 border-t border-slate-800 bg-slate-950 flex space-x-2">
+      <input type="text" id="chatInput" onkeypress="handleChatKeyPress(event)" placeholder="Ask a question..." class="flex-1 text-xs bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-brand-500">
+      <button onclick="sendChatMessage()" class="bg-brand-500 hover:bg-brand-600 text-white px-3 py-2 rounded-xl text-xs font-bold cursor-pointer transition">
+        <i class="fa-solid fa-paper-plane"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- SUCCESS SUBMISSION MODAL -->
+<div id="submissionModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+  <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl flex flex-col gap-4 text-center">
+    <div class="w-14 h-14 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center mx-auto text-2xl">
+      <i class="fa-solid fa-server"></i>
+    </div>
+    <div>
+      <h3 class="text-base font-bold text-white">Middleware Payload Transmitted</h3>
+      <p class="text-xs text-slate-400 mt-1">Playwright headless agent successfully executed DOM injection to PWD endpoint.</p>
+    </div>
+    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 text-left font-mono-tech text-xs space-y-2">
+      <div class="flex justify-between"><span class="text-slate-500">Gateway Ref:</span> <span id="dynamicTicketId" class="text-emerald-400 font-bold">#CE-2026-9042</span></div>
+      <div class="flex justify-between"><span class="text-slate-500">Target Endpoint:</span> <span class="text-teal-400">pwd.delhi.gov.in</span></div>
+      <div class="flex justify-between"><span class="text-slate-500">SHA-256 Hash Lock:</span> <span id="dynamicHashLock" class="text-amber-400">8f9b2c4e</span></div>
+    </div>
+    <button onclick="closeSubmissionModal()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-medium py-2.5 rounded-xl text-xs cursor-pointer transition">
+      Process New Grievance
+    </button>
+  </div>
+</div>
+
+<!-- JavaScript Logic -->
+<script>
+const PRESET_DATA = {
+  pothole: { url: "https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=800&q=80", issue: "Deep Road Pothole", severity: "CRITICAL (92/100)", dept: "Public Works (PWD Delhi)" },
+  garbage: { url: "https://images.unsplash.com/photo-1530587191325-3db32d826c18?auto=format&fit=crop&w=800&q=80", issue: "Overflowing Garbage Dump", severity: "HIGH (78/100)", dept: "Sanitation & Municipal Health" },
+  streetlight: { url: "https://images.unsplash.com/photo-1509114397022-ed747cca3f65?auto=format&fit=crop&w=800&q=80", issue: "Damaged Streetlight Pole", severity: "MODERATE (64/100)", dept: "Electrical & Power Grid" }
+};
+let currentBalance = 350;
+let speechRecognitionInstance = null;
+
+function switchTab(tabId) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+  const target = document.getElementById(`tab-${tabId}`);
+  if (target) target.classList.remove('hidden');
+  document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('nav-btn-active'));
+  const activeBtn = document.getElementById(`nav-${tabId}`);
+  if (activeBtn) activeBtn.classList.add('nav-btn-active');
+  if (tabId === 'admin') renderAdminChart();
+}
+
+function triggerFileSelect() { document.getElementById('customFileInput').click(); }
+
+function loadSampleImage(key) {
+  const data = PRESET_DATA[key];
+  if (!data) return;
+  document.getElementById('uploadedImgPreview').src = data.url;
+  document.getElementById('detectedIssueName').textContent = data.issue;
+  document.getElementById('detectedSeverity').textContent = data.severity;
+  document.getElementById('detectedDepartment').textContent = data.dept;
+  showToast("Preset Loaded", `Selected Target: ${data.dept}`);
+}
+
+function handleCustomFileUpload(e) {
+  const file = e.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = ev => { document.getElementById('uploadedImgPreview').src = ev.target.result; };
+    reader.readAsDataURL(file);
+    showToast("Photo Uploaded", "EXIF Vector Extraction Completed.");
+  }
+}
+
+// REAL HTML5 GEOLOCATION API
+function recalculateLocation() {
+  const locInput = document.getElementById('locationAddressInput');
+  locInput.value = "Fetching live GPS location via HTML5 Geolocation API...";
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = position.coords.latitude.toFixed(4);
+        const lon = position.coords.longitude.toFixed(4);
+        locInput.value = `Verified Live GPS: (${lat}° N, ${lon}° E) Sector 14 Geofence Zone`;
+        showToast("GPS Location Updated", `Latitude: ${lat}, Longitude: ${lon}`);
+      },
+      (error) => {
+        locInput.value = "Sector 14, Ring Road Junction, New Delhi (28.6139° N, 77.2090° E)";
+        showToast("GPS Permission Fallback", "Loaded cached sector coordinates.");
+      }
+    );
+  } else {
+    showToast("Error", "Geolocation API not supported by browser.");
+  }
+}
+
+function runAIDetectionPipeline() {
+  document.getElementById('radarStatus').innerText = 'Checked (Clean)';
+  document.getElementById('radarStatus').className = 'text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded font-mono-tech';
+  document.getElementById('radarResult').innerHTML = '<div class="text-emerald-400 font-semibold mb-0.5"><i class="fa-solid fa-check-circle"></i> GIS 50m Spatial Deduplication Clear</div><p class="text-slate-300">No active tickets found in geofence radius. Unique master ticket authorized.</p>';
+  showToast("AI Vision Scan Complete", "Form payload pre-filled & GIS verified.");
+}
+
+function triggerPlaywrightAutomation() {
+  const consoleBox = document.getElementById('automationConsole');
+  const termStatusDot = document.getElementById('termStatusDot');
+  const submitBtn = document.getElementById('submitFinalBtn');
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Executing Playwright Script...';
+  termStatusDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse';
+  
+  const logs = [
+    "[Playwright] Launching headless chromium instance (v124.0)...",
+    "[Navigation] Connecting to https://pwd.delhi.gov.in/grievance/new",
+    "[DOM Auto-Fill] Injecting Latitude: 28.6139, Longitude: 77.2090",
+    "[DOM Auto-Fill] Attaching evidence image EXIF binary...",
+    "[DOM Auto-Fill] Pre-filling description into #description_hi",
+    "[Security Token] Bypassing handshake verification...",
+    "[Execution] Programmatically triggering #submitBtn",
+    "[Response 201] Middleware payload transmitted successfully.",
+    "[SHA-256] Cryptographic Ledger Lock Sealed."
+  ];
+
+  let i = 0;
+  const timer = setInterval(() => {
+    if (i < logs.length) {
+      const p = document.createElement('p');
+      p.className = logs[i].includes('Response') ? 'text-emerald-400 font-bold' : (logs[i].includes('SHA') ? 'text-amber-400 font-bold' : 'text-slate-300');
+      p.innerText = logs[i];
+      consoleBox.appendChild(p);
+      consoleBox.scrollTop = consoleBox.scrollHeight;
+      i++;
+    } else {
+      clearInterval(timer);
+      termStatusDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400';
+      currentBalance += 15;
+      updateBalanceUI();
+      const randomTicketNum = Math.floor(1000 + Math.random() * 9000);
+      document.getElementById('dynamicTicketId').textContent = `#CE-2026-${randomTicketNum}`;
+      document.getElementById('dynamicHashLock').textContent = Math.random().toString(36).substring(2, 10);
+      setTimeout(() => {
+        document.getElementById('submissionModal').classList.remove('hidden');
+      }, 400);
+    }
+  }, 350);
+}
+
+function closeSubmissionModal() {
+  document.getElementById('submissionModal').classList.add('hidden');
+  location.reload();
+}
+
+// REAL SPEECH-TO-TEXT ENGINE
+function startVoiceRecording() {
+  document.getElementById('voiceModal').classList.remove('hidden');
+  const transcriptBox = document.getElementById('speechLiveTranscript');
+  transcriptBox.innerText = "Listening... Speak in Hindi or English";
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (SpeechRecognition) {
+    speechRecognitionInstance = new SpeechRecognition();
+    speechRecognitionInstance.continuous = true;
+    speechRecognitionInstance.lang = 'hi-IN';
+    speechRecognitionInstance.onresult = (event) => {
+      let currentTranscript = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        currentTranscript += event.results[i][0].transcript;
+      }
+      transcriptBox.innerText = `"${currentTranscript}"`;
+    };
+    speechRecognitionInstance.start();
+  } else {
+    transcriptBox.innerText = "Speech API not supported on this browser. Simulated recording active.";
+  }
+}
+
+function stopVoiceRecording() {
+  if (speechRecognitionInstance) {
+    speechRecognitionInstance.stop();
+  }
+  const spokenText = document.getElementById('speechLiveTranscript').innerText.replace(/^"|"$/g, '');
+  if (spokenText && !spokenText.includes("Listening...")) {
+    document.getElementById('hindiComplaintText').value = spokenText;
+    document.getElementById('englishComplaintText').value = "Voice Transcribed: " + spokenText;
+  }
+  document.getElementById('voiceModal').classList.add('hidden');
+  showToast("Voice Processed", "Speech converted into form payload!");
+}
+
+function openSettingsModal() { document.getElementById('settingsModal').classList.remove('hidden'); }
+function closeSettingsModal() { document.getElementById('settingsModal').classList.add('hidden'); }
+
+function openFastagRedeemModal() {
+  document.getElementById('fastagStep1').classList.remove('hidden');
+  document.getElementById('fastagStep2').classList.add('hidden');
+  document.getElementById('fastagStep3').classList.add('hidden');
+  document.getElementById('fastagModal').classList.remove('hidden');
+}
+function closeFastagRedeemModal() { document.getElementById('fastagModal').classList.add('hidden'); }
+
+function startFastagProcessing() {
+  document.getElementById('fastagStep1').classList.add('hidden');
+  document.getElementById('fastagStep2').classList.remove('hidden');
+  const log = document.getElementById('netcGatewayLog');
+  setTimeout(() => {
+    log.innerHTML += '<p class="text-emerald-400">[00:02.12] Tag Verification: ICICI_TAG_341288219904 -> MATCHED</p>';
+  }, 1000);
+  setTimeout(() => {
+    document.getElementById('fastagStep2').classList.add('hidden');
+    document.getElementById('fastagStep3').classList.remove('hidden');
+    currentBalance = 0;
+    updateBalanceUI();
+  }, 2200);
+}
+
+function updateBalanceUI() {
+  document.getElementById('headerCreditCount').textContent = `${currentBalance} Credits`;
+  document.getElementById('userBalanceDisplay').textContent = `${currentBalance} Credits`;
+  document.getElementById('fastagValueDisplay').textContent = `₹${(currentBalance / 100).toFixed(2)} FASTag Balance`;
+}
+
+// DYNAMIC SMART CHATBOT ENGINE
+function toggleChatBot() { document.getElementById('chatBotWindow').classList.toggle('hidden'); }
+function handleChatKeyPress(e) { if (e.key === 'Enter') sendChatMessage(); }
+
+function sendChatMessage() {
+  const input = document.getElementById('chatInput');
+  const query = input.value.trim();
+  if (!query) return;
+  const chatStream = document.getElementById('chatMessages');
+  chatStream.innerHTML += `<div class="bg-brand-600 text-white p-2.5 rounded-xl ml-auto max-w-[85%]">${query}</div>`;
+  input.value = '';
+  chatStream.scrollTop = chatStream.scrollHeight;
+
+  setTimeout(() => {
+    let responseText = "";
+    const qLower = query.toLowerCase();
+    if (qLower.includes("rule") || qLower.includes("earning") || qLower.includes("credits")) {
+      responseText = "CivicCredits Rules: Har valid hazard report par +15 credits milte hain, critical severity par +10 bonus aur resolution verify karne par +5 credits milte hain[cite: 1].";
+    } else if (qLower.includes("fastag") || qLower.includes("toll") || qLower.includes("discount")) {
+      responseText = "Aapke credits ki conversion value 1 Credit = ₹0.01 hai. 'Rewards & FASTag' tab mein jakar aap ise direct apne NHAI/ICICI FASTag toll wallet mein redeem kar sakte hain.";
+    } else if (qLower.includes("playwright") || qLower.includes("automation") || qLower.includes("bot")) {
+      responseText = "Playwright headless automation background mein Chromium instance run karta hai jo government portals (jaise PWD ya MCD) par EXIF GPS aur description ko automatically fill karke submission trigger karta hai.";
+    } else if (qLower.includes("gis") || qLower.includes("radar") || qLower.includes("duplicate")) {
+      responseText = "GIS Spatial Radar 50-meter radius ke andar Haversine formula se check karta hai ki koi ticket pehle se active toh nahi hai, jisse duplicate spam zero ho jata hai.";
+    } else if (qLower.includes("location") || qLower.includes("gps") || qLower.includes("coordinates")) {
+      responseText = "Aap 'Refresh GPS' button click karke HTML5 Geolocation API se apni exact live latitude aur longitude fetch kar sakte hain.";
+    } else {
+      responseText = `Maine aapka query process kar liya: "${query}". CivicEye platform EXIF Vision, GIS Deduplication aur Playwright Automation ke zariye municipal governance ko seamless banata hai!`;
+    }
+    chatStream.innerHTML += `<div class="bg-slate-800 p-2.5 rounded-xl text-slate-200 max-w-[85%]">${responseText}</div>`;
+    chatStream.scrollTop = chatStream.scrollHeight;
+  }, 500);
+}
+
+function showToast(title, message) {
+  document.getElementById('toastTitle').textContent = title;
+  document.getElementById('toastMessage').textContent = message;
+  const toast = document.getElementById('toastNotification');
+  toast.classList.remove('translate-x-full');
+  setTimeout(() => { toast.classList.add('translate-x-full'); }, 3000);
+}
+function hideToast() { document.getElementById('toastNotification').classList.add('translate-x-full'); }
+
+let adminChartInstance = null;
+function renderAdminChart() {
+  const ctx = document.getElementById('govDepartmentChart');
+  if (!ctx) return;
+  if (adminChartInstance) adminChartInstance.destroy();
+  adminChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['PWD', 'Sanitation', 'Electrical', 'Water', 'Traffic'],
+      datasets: [{ data: [420, 310, 190, 150, 170], backgroundColor: ['#0d9488', '#f59e0b', '#6366f1', '#06b6d4', '#f43f5e'], borderRadius: 8 }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+  });
+}
+</script>
+</body>
+</html>
